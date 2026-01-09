@@ -129,7 +129,6 @@ When nil, translation is unavailable."
     ('docstring (or (plist-get bounds :text) ""))
     (_ "")))
 
-
 (defun comment-translate--mouse-target ()
   "Return (WINDOW . POINT) at current mouse position, or nil."
   (let* ((pos (mouse-pixel-position))
