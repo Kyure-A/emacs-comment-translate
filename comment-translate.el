@@ -21,7 +21,6 @@
 ;;; Code:
 
 (require 'subr-x)
-(require 'posframe)
 (require 'url)
 (require 'url-util)
 (require 'json)
@@ -32,6 +31,7 @@
   :prefix "comment-translate-")
 
 (require 'comment-translate-detect)
+(require 'comment-translate-ui)
 (require 'comment-translate-docstring)
 (require 'comment-translate-docstring-elisp)
 (require 'comment-translate-docstring-python)
@@ -57,10 +57,6 @@
   "Target language code for translation."
   :type 'string)
 
-(defcustom comment-translate-fill-column 72
-  "Column width used to wrap translated text."
-  :type 'integer)
-
 (declare-function comment-translate-google-translate "comment-translate" (text callback))
 
 (defcustom comment-translate-translate-function #'comment-translate-google-translate
@@ -77,14 +73,6 @@ When nil, translation is unavailable."
   "Google Translate unofficial endpoint URL."
   :type 'string)
 
-(defcustom comment-translate-show-loading t
-  "When non-nil, show a loading message while translating."
-  :type 'boolean)
-
-(defcustom comment-translate-loading-text "Translating..."
-  "Text shown while translation is in progress."
-  :type 'string)
-
 (defcustom comment-translate-show-unavailable t
   "When non-nil, show a message if translation backend is not available."
   :type 'boolean)
@@ -94,30 +82,9 @@ When nil, translation is unavailable."
   "Text shown when translation is unavailable."
   :type 'string)
 
-(defcustom comment-translate-poshandler
-  #'posframe-poshandler-point-bottom-left-corner
-  "Posframe position handler."
-  :type 'function)
-
-(defcustom comment-translate-max-width 80
-  "Maximum width of the posframe in characters."
-  :type 'integer)
-
-(defcustom comment-translate-max-height 20
-  "Maximum height of the posframe in lines."
-  :type 'integer)
-
-(defcustom comment-translate-posframe-parameters
-  '(:internal-border-width 1)
-  "Extra parameters passed to `posframe-show'."
-  :type 'plist)
-
 (defcustom comment-translate-hide-when-not-in-comment t
   "When non-nil, hide the posframe when leaving a comment/docstring (point mode only)."
   :type 'boolean)
-
-(defconst comment-translate--posframe-buffer " *comment-translate-posframe*"
-  "Posframe buffer name used by comment-translate.")
 
 (defvar comment-translate--cache (make-hash-table :test 'equal)
   "Cache for translations keyed by (source target text).")
@@ -162,10 +129,6 @@ When nil, translation is unavailable."
     ('docstring (or (plist-get bounds :text) ""))
     (_ "")))
 
-
-(defun comment-translate--posframe-available-p ()
-  "Return non-nil if posframe can be used in the current frame."
-  (and (featurep 'posframe) (posframe-workable-p)))
 
 (defun comment-translate--mouse-target ()
   "Return (WINDOW . POINT) at current mouse position, or nil."
@@ -293,32 +256,6 @@ CALLBACK is called with (TRANSLATION ERROR)."
                         encoded)))
       (url-retrieve url #'comment-translate--google-callback (list callback) t t))))
 
-(defun comment-translate--format-translation (text)
-  "Wrap TEXT to `comment-translate-fill-column' when configured."
-  (if (and (numberp comment-translate-fill-column)
-           (> comment-translate-fill-column 0))
-      (with-temp-buffer
-        (insert text)
-        (let ((fill-column comment-translate-fill-column))
-          (fill-region (point-min) (point-max)))
-        (buffer-string))
-    text))
-
-(defun comment-translate--posframe-show (text window position)
-  "Show TEXT in a posframe at POSITION in WINDOW."
-  (when (comment-translate--posframe-available-p)
-    (with-selected-window window
-      (apply #'posframe-show
-             comment-translate--posframe-buffer
-             :string text
-             :position position
-             :poshandler comment-translate-poshandler
-             :background-color (face-background 'tooltip nil t)
-             :foreground-color (face-foreground 'tooltip nil t)
-             :max-width comment-translate-max-width
-             :max-height comment-translate-max-height
-             comment-translate-posframe-parameters))))
-
 (defun comment-translate--show-translation (text translation window position)
   "Display TRANSLATION for TEXT at POSITION in WINDOW."
   (setq comment-translate--last-text text
@@ -389,12 +326,6 @@ CALLBACK is called with (TRANSLATION ERROR)."
         comment-translate--pending-window nil
         comment-translate--pending-position nil
         comment-translate--request-id (1+ comment-translate--request-id)))
-
-(defun comment-translate-hide ()
-  "Hide the translation posframe."
-  (interactive)
-  (when (featurep 'posframe)
-    (posframe-hide comment-translate--posframe-buffer)))
 
 (defun comment-translate-clear-cache ()
   "Clear the translation cache."
