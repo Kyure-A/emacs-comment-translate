@@ -75,7 +75,8 @@
 
 (defun comment-translate--elisp-docstring-indexes (head)
   "Return allowed docstring indexes for HEAD symbol."
-  (cdr (assq head comment-translate--elisp-docstring-forms)))
+  (when (symbolp head)
+    (cdr (assoc (symbol-name head) comment-translate--elisp-docstring-forms))))
 
 (defun comment-translate--elisp-string-docstring-p (string-start)
   "Return non-nil if STRING-START is in a docstring position."

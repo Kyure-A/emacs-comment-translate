@@ -32,7 +32,7 @@ MODES is a list of major modes passed to `derived-mode-p'."
     (push (cons modes fn) comment-translate--docstring-detectors)))
 
 (defun comment-translate-docstring-at (pos)
-  "Return docstring info plist at POS, or nil." 
+  "Return docstring info plist at POS, or nil."
   (when comment-translate-include-docstrings
     (cl-loop for (modes . fn) in comment-translate--docstring-detectors
              when (and modes (apply #'derived-mode-p modes))

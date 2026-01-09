@@ -56,7 +56,7 @@
           (downcase (if pos (substring name pos) name)))))))
 
 (defun comment-translate--common-lisp-element-starts (list-start)
-  "Return a list of element start positions for list at LIST-START." 
+  "Return a list of element start positions for list at LIST-START."
   (save-excursion
     (goto-char list-start)
     (forward-char 1)
@@ -74,11 +74,11 @@
       (nreverse starts))))
 
 (defun comment-translate--common-lisp-docstring-indexes (head)
-  "Return allowed docstring indexes for HEAD symbol name." 
+  "Return allowed docstring indexes for HEAD symbol name."
   (cdr (assoc head comment-translate--common-lisp-docstring-forms)))
 
 (defun comment-translate--common-lisp-string-docstring-p (string-start)
-  "Return non-nil if STRING-START is in a docstring position." 
+  "Return non-nil if STRING-START is in a docstring position."
   (condition-case nil
       (save-excursion
         (goto-char string-start)
@@ -93,7 +93,7 @@
     (error nil)))
 
 (defun comment-translate--common-lisp-docstring-bounds (pos)
-  "Return (START . END) for Common Lisp docstring at POS, or nil." 
+  "Return (START . END) for Common Lisp docstring at POS, or nil."
   (when (comment-translate--common-lisp-mode-p)
     (save-excursion
       (goto-char pos)
@@ -105,7 +105,7 @@
               (cons start end))))))))
 
 (defun comment-translate--common-lisp-docstring-text (bounds)
-  "Extract Common Lisp docstring text from BOUNDS." 
+  "Extract Common Lisp docstring text from BOUNDS."
   (save-excursion
     (goto-char (car bounds))
     (let ((obj (ignore-errors (read (current-buffer)))))
@@ -115,7 +115,7 @@
         (t (buffer-substring-no-properties (car bounds) (cdr bounds))))))))
 
 (defun comment-translate--common-lisp-docstring-at (pos)
-  "Return docstring info plist at POS for Common Lisp." 
+  "Return docstring info plist at POS for Common Lisp."
   (let ((bounds (comment-translate--common-lisp-docstring-bounds pos)))
     (when bounds
       (list :bounds bounds

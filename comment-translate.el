@@ -60,8 +60,6 @@
   "Target language code for translation."
   :type 'string)
 
-(declare-function comment-translate-google-translate "comment-translate" (text callback))
-
 (defcustom comment-translate-translate-function #'comment-translate-google-translate
   "Function used to translate comment text.
 
@@ -86,8 +84,13 @@ When nil, translation is unavailable."
   :type 'string)
 
 (defcustom comment-translate-hide-when-not-in-comment t
-  "When non-nil, hide the posframe when leaving a comment/docstring (point mode only)."
+  "When non-nil, hide the posframe when leaving a comment/docstring.
+
+This only applies in point hover mode."
   :type 'boolean)
+
+(defvar comment-translate-mode nil
+  "Non-nil when Comment-Translate mode is enabled.")
 
 (defvar comment-translate--cache (make-hash-table :test 'equal)
   "Cache for translations keyed by (source target text).")
@@ -225,7 +228,7 @@ When nil, translation is unavailable."
     (error nil)))
 
 (defun comment-translate--google-callback (status callback)
-  "Handle Google Translate response and invoke CALLBACK."
+  "Handle Google Translate response STATUS and invoke CALLBACK."
   (let ((buf (current-buffer)))
     (unwind-protect
         (if (plist-get status :error)
@@ -270,7 +273,9 @@ CALLBACK is called with (TRANSLATION ERROR)."
      position)))
 
 (defun comment-translate--handle-translation (buffer window position text request-id translation error)
-  "Handle translation result and update display."
+  "Handle TRANSLATION or ERROR for TEXT in BUFFER with REQUEST-ID.
+
+Update WINDOW at POSITION."
   (when (buffer-live-p buffer)
     (with-current-buffer buffer
       (when (and comment-translate-mode
@@ -375,7 +380,7 @@ CALLBACK is called with (TRANSLATION ERROR)."
       (comment-translate--show-at (car target) (cdr target)))))
 
 (defun comment-translate--maybe-show (buffer window point)
-  "Idle timer callback to show translation."
+  "Idle timer callback to show translation for BUFFER at POINT in WINDOW."
   (pcase comment-translate-hover-source
     ('mouse
      (let ((target (comment-translate--current-target)))
@@ -401,7 +406,7 @@ CALLBACK is called with (TRANSLATION ERROR)."
     (setq comment-translate--idle-timer nil)))
 
 (defun comment-translate--schedule ()
-  "Schedule idle translation timer in the current buffer." 
+  "Schedule idle translation timer in the current buffer."
   (comment-translate--cancel-timer)
   (setq comment-translate--idle-timer
         (run-with-idle-timer comment-translate-idle-delay nil
@@ -411,7 +416,7 @@ CALLBACK is called with (TRANSLATION ERROR)."
                              (point))))
 
 (defun comment-translate--post-command ()
-  "Post-command hook for comment-translate." 
+  "Post-command hook for comment-translate."
   (let ((ppss (syntax-ppss)))
     (when (and comment-translate-hide-when-not-in-comment
                (eq comment-translate-hover-source 'point)
@@ -424,7 +429,7 @@ CALLBACK is called with (TRANSLATION ERROR)."
 
 ;;;###autoload
 (define-minor-mode comment-translate-mode
-  "Translate comments on hover and show them in a posframe." 
+  "Translate comments on hover and show them in a posframe."
   :lighter " CTrans"
   (if comment-translate-mode
       (progn
@@ -435,7 +440,7 @@ CALLBACK is called with (TRANSLATION ERROR)."
     (comment-translate-hide)))
 
 (defun comment-translate--maybe-enable ()
-  "Enable `comment-translate-mode' in programming buffers." 
+  "Enable `comment-translate-mode' in programming buffers."
   (when (derived-mode-p 'prog-mode)
     (comment-translate-mode 1)))
 

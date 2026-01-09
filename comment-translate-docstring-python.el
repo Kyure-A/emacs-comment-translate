@@ -36,14 +36,14 @@
     (point))))
 
 (defun comment-translate--python-string-statement-p (pos)
-  "Return non-nil if statement at POS starts with a string literal." 
+  "Return non-nil if statement at POS starts with a string literal."
   (save-excursion
     (goto-char pos)
     (looking-at-p
      "[ \\t]*[uUrRbBfF]*\\(?:\\\"\\\"\\\"\\|'''\\|\\\"\\|'\\)")))
 
 (defun comment-translate--python-module-docstring-p (stmt-start)
-  "Return non-nil if statement at STMT-START is module docstring." 
+  "Return non-nil if statement at STMT-START is module docstring."
   (save-excursion
     (goto-char (point-min))
     (let ((found nil))
@@ -58,7 +58,7 @@
       (not found))))
 
 (defun comment-translate--python-block-docstring-p (stmt-start indent)
-  "Return non-nil if statement at STMT-START is first in def/class block." 
+  "Return non-nil if statement at STMT-START is first in INDENT block."
   (save-excursion
     (goto-char stmt-start)
     (let ((done nil)
@@ -84,7 +84,7 @@
              (looking-at-p "\(?:async[ \t]+\)?\(?:def\|class\)\b"))))))
 
 (defun comment-translate--python-docstring-p (string-start)
-  "Return non-nil if STRING-START is a Python docstring." 
+  "Return non-nil if STRING-START is a Python docstring."
   (save-excursion
     (goto-char string-start)
     (let* ((stmt-start (comment-translate--python-statement-start))
@@ -95,7 +95,7 @@
              (comment-translate--python-block-docstring-p stmt-start indent))))))
 
 (defun comment-translate--python-strip-string (raw)
-  "Strip Python string delimiters and prefixes from RAW." 
+  "Strip Python string delimiters and prefixes from RAW."
   (let* ((s (string-trim-left raw))
          (s (replace-regexp-in-string
              "\`[uUrRbBfF]+" "" s))
@@ -112,13 +112,13 @@
     s))
 
 (defun comment-translate--python-docstring-text (bounds)
-  "Extract Python docstring text from BOUNDS." 
+  "Extract Python docstring text from BOUNDS."
   (let* ((raw (buffer-substring-no-properties (car bounds) (cdr bounds)))
          (text (comment-translate--python-strip-string raw)))
     (comment-translate--normalize-text text)))
 
 (defun comment-translate--python-docstring-at (pos)
-  "Return docstring info plist at POS for Python." 
+  "Return docstring info plist at POS for Python."
   (when (comment-translate--python-docstring-mode-p)
     (save-excursion
       (goto-char pos)

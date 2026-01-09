@@ -58,7 +58,7 @@
   (and (featurep 'posframe) (posframe-workable-p)))
 
 (defun comment-translate--format-translation (text)
-  "Wrap TEXT to `comment-translate-fill-column' when configured." 
+  "Wrap TEXT to `comment-translate-fill-column' when configured."
   (if (and (numberp comment-translate-fill-column)
            (> comment-translate-fill-column 0))
       (with-temp-buffer
@@ -69,7 +69,7 @@
     text))
 
 (defun comment-translate--posframe-show (text window position)
-  "Show TEXT in a posframe at POSITION in WINDOW." 
+  "Show TEXT in a posframe at POSITION in WINDOW."
   (when (comment-translate--posframe-available-p)
     (with-selected-window window
       (apply #'posframe-show
@@ -84,7 +84,7 @@
              comment-translate-posframe-parameters))))
 
 (defun comment-translate-hide ()
-  "Hide the translation posframe." 
+  "Hide the translation posframe."
   (interactive)
   (when (featurep 'posframe)
     (posframe-hide comment-translate--posframe-buffer)))
