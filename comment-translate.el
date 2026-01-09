@@ -105,7 +105,7 @@ When nil, translation is unavailable."
   :type 'integer)
 
 (defcustom comment-translate-posframe-parameters
-  '(:internal-border-width 8)
+  '(:internal-border-width 3)
   "Extra parameters passed to `posframe-show'."
   :type 'plist)
 
