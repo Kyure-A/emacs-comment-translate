@@ -28,23 +28,23 @@
   :group 'comment-translate)
 
 (defconst comment-translate--common-lisp-docstring-forms
-  '(("defun" . (4))
-    ("defmacro" . (4))
-    ("defgeneric" . (4))
-    ("defmethod" . (4 5 6))
-    ("defvar" . (3 4))
-    ("defparameter" . (3 4))
-    ("defconstant" . (3 4)))
+  '(("defun" (4))
+    ("defmacro" (4))
+    ("defgeneric" (4))
+    ("defmethod" (4 5 6))
+    ("defvar" (3 4))
+    ("defparameter" (3 4))
+    ("defconstant" (3 4)))
   "Alist of Common Lisp forms and their docstring element indices.")
 
 (defun comment-translate--common-lisp-mode-p ()
-  "Return non-nil if Common Lisp docstring detection is enabled in this buffer." 
+  "Return non-nil if Common Lisp docstring detection is enabled in this buffer."
   (and comment-translate-include-docstrings
        (apply #'derived-mode-p comment-translate-docstring-common-lisp-modes)
        (not (apply #'derived-mode-p comment-translate-docstring-common-lisp-excluded-modes))))
 
 (defun comment-translate--common-lisp-head-symbol (list-start)
-  "Return the head symbol name of list at LIST-START, or nil." 
+  "Return the head symbol name of list at LIST-START, or nil."
   (save-excursion
     (goto-char list-start)
     (forward-char 1)
