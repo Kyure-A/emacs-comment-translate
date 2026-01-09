@@ -33,6 +33,9 @@
 
 (require 'comment-translate-detect)
 (require 'comment-translate-docstring)
+(require 'comment-translate-docstring-elisp)
+(require 'comment-translate-docstring-python)
+(require 'comment-translate-docstring-common-lisp)
 
 (defcustom comment-translate-idle-delay 0.6
   "Seconds to wait before showing translation."
@@ -149,14 +152,14 @@ When nil, translation is unavailable."
     (cond
      (comment (cons 'comment comment))
      (t
-      (let ((doc (comment-translate--docstring-bounds pos)))
+      (let ((doc (comment-translate-docstring-at pos)))
         (when doc (cons 'docstring doc)))))))
 
 (defun comment-translate--content-text (type bounds)
   "Return cleaned text for TYPE and BOUNDS."
   (pcase type
     ('comment (comment-translate--comment-text bounds))
-    ('docstring (comment-translate--docstring-text bounds))
+    ('docstring (or (plist-get bounds :text) ""))
     (_ "")))
 
 
@@ -480,9 +483,8 @@ CALLBACK is called with (TRANSLATION ERROR)."
     (when (and comment-translate-hide-when-not-in-comment
                (eq comment-translate-hover-source 'point)
                (not (nth 4 ppss))
-               (not (and (comment-translate--docstring-mode-p)
-                         (nth 3 ppss)
-                         (comment-translate--docstring-bounds (point)))))
+               (not (and (nth 3 ppss)
+                         (comment-translate-docstring-at (point)))))
       (comment-translate--cancel-pending)
       (comment-translate-hide)))
   (comment-translate--schedule))

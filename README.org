@@ -37,6 +37,20 @@ To control which modes are treated as docstring sources:
       '(emacs-lisp-mode lisp-interaction-mode))
 #+end_src
 
+Python docstring modes:
+
+#+begin_src elisp
+(setq comment-translate-docstring-python-modes
+      '(python-mode python-ts-mode))
+#+end_src
+
+Common Lisp docstring modes:
+
+#+begin_src elisp
+(setq comment-translate-docstring-common-lisp-modes
+      '(lisp-mode common-lisp-mode))
+#+end_src
+
 * Custom translator
 
 By default this plugin uses Google Translate's unofficial endpoint

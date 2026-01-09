@@ -1,4 +1,4 @@
-;;; comment-translate-docstring.el --- Emacs Lisp docstring detection -*- lexical-binding: t; -*-
+;;; comment-translate-docstring.el --- Docstring dispatch -*- lexical-binding: t; -*-
 
 ;; Author: Kyure-A
 ;; Keywords: convenience, tools, i18n
@@ -6,116 +6,37 @@
 
 ;;; Commentary:
 ;;
-;; Emacs Lisp docstring detection utilities for comment-translate.
+;; Docstring dispatch and registration for comment-translate.
 ;;
 ;;; Code:
 
 (require 'cl-lib)
-(require 'comment-translate-detect)
 
 (defcustom comment-translate-include-docstrings t
-  "When non-nil, translate Emacs Lisp docstrings on hover."
+  "When non-nil, translate docstrings on hover."
   :type 'boolean
   :group 'comment-translate)
 
-(defcustom comment-translate-docstring-modes
-  '(emacs-lisp-mode lisp-interaction-mode)
-  "Major modes where docstrings should be detected."
-  :type '(repeat symbol)
-  :group 'comment-translate)
+(defvar comment-translate--docstring-detectors nil
+  "List of (MODES . FN) docstring detectors.")
 
-(defconst comment-translate--docstring-forms
-  '((defun . (4))
-    (defmacro . (4))
-    (defsubst . (4))
-    (defalias . (4))
-    (defvar . (3 4))
-    (defvar-local . (3 4))
-    (defconst . (3 4))
-    (defcustom . (4))
-    (defgroup . (4))
-    (defgeneric . (4))
-    (define-minor-mode . (3))
-    (define-globalized-minor-mode . (5))
-    (define-derived-mode . (5))
-    (cl-defun . (4))
-    (cl-defmacro . (4))
-    (cl-defmethod . (4 5 6)))
-  "Alist of forms and their docstring element indices.")
+(defun comment-translate-docstring-register (modes fn)
+  "Register docstring detector FN for MODES.
 
-(defun comment-translate--docstring-mode-p ()
-  "Return non-nil if docstring detection is enabled in this buffer."
-  (and comment-translate-include-docstrings
-       comment-translate-docstring-modes
-       (apply #'derived-mode-p comment-translate-docstring-modes)))
+FN is called with POS and should return a plist:
+  (:bounds (START . END) :text STRING)
 
-(defun comment-translate--list-head-symbol (list-start)
-  "Return the head symbol of list at LIST-START, or nil."
-  (save-excursion
-    (goto-char list-start)
-    (forward-char 1)
-    (skip-chars-forward " \t\n")
-    (let ((obj (ignore-errors (read (current-buffer)))))
-      (and (symbolp obj) obj))))
+MODES is a list of major modes passed to `derived-mode-p'."
+  (when (and (listp modes) (functionp fn))
+    (push (cons modes fn) comment-translate--docstring-detectors)))
 
-(defun comment-translate--list-element-starts (list-start)
-  "Return a list of element start positions for list at LIST-START."
-  (save-excursion
-    (goto-char list-start)
-    (forward-char 1)
-    (let (starts done)
-      (while (and (not done) (not (eobp)))
-        (skip-chars-forward " \t\n")
-        (when (or (eobp) (eq (char-after) ?\)))
-          (setq done t))
-        (unless done
-          (let ((start (point)))
-            (push start starts)
-            (condition-case nil
-                (forward-sexp 1)
-              (error (setq done t))))))
-      (nreverse starts))))
-
-(defun comment-translate--docstring-indexes (head)
-  "Return allowed docstring indexes for HEAD symbol."
-  (cdr (assq head comment-translate--docstring-forms)))
-
-(defun comment-translate--string-docstring-p (string-start)
-  "Return non-nil if STRING-START is in a docstring position."
-  (condition-case nil
-      (save-excursion
-        (goto-char string-start)
-        (backward-up-list 1)
-        (let* ((list-start (point))
-               (head (comment-translate--list-head-symbol list-start))
-               (starts (comment-translate--list-element-starts list-start))
-               (index (cl-position string-start starts)))
-          (when (and head index)
-            (let ((allowed (comment-translate--docstring-indexes head)))
-              (and allowed (memq (1+ index) allowed))))))
-    (error nil)))
-
-(defun comment-translate--docstring-bounds (pos)
-  "Return (START . END) for docstring at POS, or nil."
-  (when (comment-translate--docstring-mode-p)
-    (save-excursion
-      (goto-char pos)
-      (let ((ppss (syntax-ppss)))
-        (when (nth 3 ppss)
-          (let* ((start (nth 8 ppss))
-                 (end (ignore-errors (scan-sexps start 1))))
-            (when (and end (comment-translate--string-docstring-p start))
-              (cons start end))))))))
-
-(defun comment-translate--docstring-text (bounds)
-  "Extract docstring text from BOUNDS."
-  (save-excursion
-    (goto-char (car bounds))
-    (let ((obj (ignore-errors (read (current-buffer)))))
-      (comment-translate--normalize-text
-       (cond
-        ((stringp obj) obj)
-        (t (buffer-substring-no-properties (car bounds) (cdr bounds))))))))
+(defun comment-translate-docstring-at (pos)
+  "Return docstring info plist at POS, or nil." 
+  (when comment-translate-include-docstrings
+    (cl-loop for (modes . fn) in comment-translate--docstring-detectors
+             when (and modes (apply #'derived-mode-p modes))
+             for result = (funcall fn pos)
+             when result return result)))
 
 (provide 'comment-translate-docstring)
 
