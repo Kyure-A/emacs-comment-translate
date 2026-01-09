@@ -26,7 +26,15 @@ Put ~comment-translate.el~ on your ~load-path~ and enable the mode:
 (setq comment-translate-target-language "ja"
       comment-translate-source-language "auto"
       comment-translate-idle-delay 0.6
-      comment-translate-hover-source 'mouse)
+      comment-translate-hover-source 'mouse
+      comment-translate-include-docstrings t)
+#+end_src
+
+To control which modes are treated as docstring sources:
+
+#+begin_src elisp
+(setq comment-translate-docstring-modes
+      '(emacs-lisp-mode lisp-interaction-mode))
 #+end_src
 
 * Custom translator
@@ -60,4 +68,3 @@ You can change the endpoint if needed:
 - ~comment-translate-show~ - show translation at the current hover location
 - ~comment-translate-hide~ - hide the posframe
 - ~comment-translate-clear-cache~ - clear the translation cache
-
