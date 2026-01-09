@@ -20,9 +20,7 @@
 ;;
 ;;; Code:
 
-(require 'cl-lib)
 (require 'subr-x)
-(require 'newcomment)
 (require 'posframe)
 (require 'url)
 (require 'url-util)
@@ -32,6 +30,9 @@
   "Translate comments and show via posframe."
   :group 'tools
   :prefix "comment-translate-")
+
+(require 'comment-translate-detect)
+(require 'comment-translate-docstring)
 
 (defcustom comment-translate-idle-delay 0.6
   "Seconds to wait before showing translation."
@@ -52,10 +53,6 @@
 (defcustom comment-translate-target-language "ja"
   "Target language code for translation."
   :type 'string)
-
-(defcustom comment-translate-max-chars 800
-  "Maximum number of characters to translate from a comment."
-  :type 'integer)
 
 (defcustom comment-translate-fill-column 72
   "Column width used to wrap translated text."
@@ -84,15 +81,6 @@ When nil, translation is unavailable."
 (defcustom comment-translate-loading-text "Translating..."
   "Text shown while translation is in progress."
   :type 'string)
-
-(defcustom comment-translate-include-docstrings t
-  "When non-nil, translate Emacs Lisp docstrings on hover."
-  :type 'boolean)
-
-(defcustom comment-translate-docstring-modes
-  '(emacs-lisp-mode lisp-interaction-mode)
-  "Major modes where docstrings should be detected."
-  :type '(repeat symbol))
 
 (defcustom comment-translate-show-unavailable t
   "When non-nil, show a message if translation backend is not available."
@@ -155,24 +143,22 @@ When nil, translation is unavailable."
 (defvar-local comment-translate--pending-position nil
   "Position used for the current translation request.")
 
-(defconst comment-translate--docstring-forms
-  '((defun . (4))
-    (defmacro . (4))
-    (defsubst . (4))
-    (defalias . (4))
-    (defvar . (3 4))
-    (defvar-local . (3 4))
-    (defconst . (3 4))
-    (defcustom . (4))
-    (defgroup . (4))
-    (defgeneric . (4))
-    (define-minor-mode . (3))
-    (define-globalized-minor-mode . (5))
-    (define-derived-mode . (5))
-    (cl-defun . (4))
-    (cl-defmacro . (4))
-    (cl-defmethod . (4 5 6)))
-  "Alist of forms and their docstring element indices.")
+(defun comment-translate--content-at (pos)
+  "Return (TYPE . BOUNDS) for comment or docstring at POS."
+  (let ((comment (comment-translate--comment-bounds pos)))
+    (cond
+     (comment (cons 'comment comment))
+     (t
+      (let ((doc (comment-translate--docstring-bounds pos)))
+        (when doc (cons 'docstring doc)))))))
+
+(defun comment-translate--content-text (type bounds)
+  "Return cleaned text for TYPE and BOUNDS."
+  (pcase type
+    ('comment (comment-translate--comment-text bounds))
+    ('docstring (comment-translate--docstring-text bounds))
+    (_ "")))
+
 
 (defun comment-translate--posframe-available-p ()
   "Return non-nil if posframe can be used in the current frame."
@@ -198,163 +184,6 @@ When nil, translation is unavailable."
      (or (comment-translate--mouse-target)
          (cons (selected-window) (point))))
     (_ (cons (selected-window) (point)))))
-
-(defun comment-translate--strip-prefix (line prefix)
-  "Remove PREFIX from LINE if present.
-
-This removes leading whitespace before PREFIX, then trims whitespace after it."
-  (let ((prefix (string-trim prefix)))
-    (if (string-empty-p prefix)
-        line
-      (let ((trimmed (string-trim-left line)))
-        (if (string-prefix-p prefix trimmed)
-            (string-trim-left (substring trimmed (length prefix)))
-          line)))))
-
-(defun comment-translate--strip-suffix (line suffix)
-  "Remove SUFFIX from LINE if present.
-
-This trims trailing whitespace before matching SUFFIX, then trims it again."
-  (let ((suffix (string-trim suffix)))
-    (if (string-empty-p suffix)
-        line
-      (let ((trimmed (string-trim-right line)))
-        (if (string-suffix-p suffix trimmed)
-            (string-trim-right (substring trimmed 0 (- (length suffix))))
-          line)))))
-
-(defun comment-translate--strip-comment (text)
-  "Strip comment delimiters from TEXT."
-  (comment-normalize-vars)
-  (let* ((lines (split-string text "\n"))
-         (start (or comment-start ""))
-         (cont (or comment-continue ""))
-         (end (or comment-end "")))
-    (setq lines (mapcar (lambda (line)
-                          (comment-translate--strip-prefix line start))
-                        lines))
-    (when (not (string-empty-p cont))
-      (setq lines (mapcar (lambda (line)
-                            (comment-translate--strip-prefix line cont))
-                          lines)))
-    (when (and lines (not (string-empty-p end)))
-      (setf (car (last lines))
-            (comment-translate--strip-suffix (car (last lines)) end)))
-    (string-trim (string-join lines "\n"))))
-
-(defun comment-translate--comment-bounds (pos)
-  "Return (START . END) for the comment at POS, or nil." 
-  (save-excursion
-    (goto-char pos)
-    (let ((ppss (syntax-ppss)))
-      (when (nth 4 ppss)
-        (let ((start (nth 8 ppss)))
-          (goto-char start)
-          (comment-forward 1)
-          (cons start (point)))))))
-
-(defun comment-translate--docstring-mode-p ()
-  "Return non-nil if docstring detection is enabled in this buffer."
-  (and comment-translate-include-docstrings
-       comment-translate-docstring-modes
-       (apply #'derived-mode-p comment-translate-docstring-modes)))
-
-(defun comment-translate--list-head-symbol (list-start)
-  "Return the head symbol of list at LIST-START, or nil."
-  (save-excursion
-    (goto-char list-start)
-    (forward-char 1)
-    (skip-chars-forward " \t\n")
-    (let ((obj (ignore-errors (read (current-buffer)))))
-      (and (symbolp obj) obj))))
-
-(defun comment-translate--list-element-starts (list-start)
-  "Return a list of element start positions for list at LIST-START."
-  (save-excursion
-    (goto-char list-start)
-    (forward-char 1)
-    (let (starts done)
-      (while (and (not done) (not (eobp)))
-        (skip-chars-forward " \t\n")
-        (when (or (eobp) (eq (char-after) ?\)))
-          (setq done t))
-        (unless done
-          (let ((start (point)))
-            (push start starts)
-            (condition-case nil
-                (forward-sexp 1)
-              (error (setq done t))))))
-      (nreverse starts))))
-
-(defun comment-translate--docstring-indexes (head)
-  "Return allowed docstring indexes for HEAD symbol."
-  (cdr (assq head comment-translate--docstring-forms)))
-
-(defun comment-translate--string-docstring-p (string-start)
-  "Return non-nil if STRING-START is in a docstring position."
-  (condition-case nil
-      (save-excursion
-        (goto-char string-start)
-        (backward-up-list 1)
-        (let* ((list-start (point))
-               (head (comment-translate--list-head-symbol list-start))
-               (starts (comment-translate--list-element-starts list-start))
-               (index (cl-position string-start starts)))
-          (when (and head index)
-            (let ((allowed (comment-translate--docstring-indexes head)))
-              (and allowed (memq (1+ index) allowed))))))
-    (error nil)))
-
-(defun comment-translate--docstring-bounds (pos)
-  "Return (START . END) for docstring at POS, or nil."
-  (when (comment-translate--docstring-mode-p)
-    (save-excursion
-      (goto-char pos)
-      (let ((ppss (syntax-ppss)))
-        (when (nth 3 ppss)
-          (let* ((start (nth 8 ppss))
-                 (end (ignore-errors (scan-sexps start 1))))
-            (when (and end (comment-translate--string-docstring-p start))
-              (cons start end))))))))
-
-(defun comment-translate--content-at (pos)
-  "Return (TYPE . BOUNDS) for comment or docstring at POS."
-  (let ((comment (comment-translate--comment-bounds pos)))
-    (cond
-     (comment (cons 'comment comment))
-     (t
-      (let ((doc (comment-translate--docstring-bounds pos)))
-        (when doc (cons 'docstring doc)))))))
-
-(defun comment-translate--normalize-text (text)
-  "Trim TEXT and apply `comment-translate-max-chars`."
-  (let ((trimmed (string-trim text)))
-    (if (> (length trimmed) comment-translate-max-chars)
-        (substring trimmed 0 comment-translate-max-chars)
-      trimmed)))
-
-(defun comment-translate--comment-text (bounds)
-  "Extract and clean comment text from BOUNDS."
-  (let* ((raw (buffer-substring-no-properties (car bounds) (cdr bounds)))
-         (text (comment-translate--strip-comment raw)))
-    (comment-translate--normalize-text text)))
-
-(defun comment-translate--docstring-text (bounds)
-  "Extract docstring text from BOUNDS."
-  (save-excursion
-    (goto-char (car bounds))
-    (let ((obj (ignore-errors (read (current-buffer)))))
-      (comment-translate--normalize-text
-       (cond
-        ((stringp obj) obj)
-        (t (buffer-substring-no-properties (car bounds) (cdr bounds))))))))
-
-(defun comment-translate--content-text (type bounds)
-  "Return cleaned text for TYPE and BOUNDS."
-  (pcase type
-    ('comment (comment-translate--comment-text bounds))
-    ('docstring (comment-translate--docstring-text bounds))
-    (_ "")))
 
 (defun comment-translate--cache-key (text)
   "Return cache key for TEXT."
