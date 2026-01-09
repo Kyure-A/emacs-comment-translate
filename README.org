@@ -3,16 +3,16 @@
 Show translations for comments in a posframe when you hover (idle at point or
 mouse position).
 
-* Requirements
+** Requirements
 
 - Emacs 27+
 - posframe
 - Network access (default backend uses Google Translate's unofficial endpoint)
 
-* Demo
+** Demo
 https://github.com/user-attachments/assets/cd56ec50-83ed-487b-8fb8-972293d16a31
 
-* Install
+** Install
 
 Put ~comment-translate.el~ on your ~load-path~ and enable the mode:
 
@@ -23,7 +23,7 @@ Put ~comment-translate.el~ on your ~load-path~ and enable the mode:
 (global-comment-translate-mode 1)
 #+end_src
 
-* Configuration
+** Configuration
 
 #+begin_src elisp
 (setq comment-translate-target-language "ja"
@@ -54,33 +54,7 @@ Common Lisp docstring modes:
       '(lisp-mode common-lisp-mode))
 #+end_src
 
-* Custom translator
-
-By default this plugin uses Google Translate's unofficial endpoint
-as an asynchronous backend. If you want to use your own backend, provide
-a function:
-
-- Sync: ~(fn TEXT)~ => return translated string
-- Async: ~(fn TEXT CALLBACK)~ and call ~(funcall CALLBACK TRANSLATION ERROR)~
-
-#+begin_src elisp
-(defun my-comment-translate (text)
-  ;; Return translated string synchronously.
-  (concat "[translated] " text))
-
-(setq comment-translate-translate-function #'my-comment-translate)
-#+end_src
-
-* Google endpoint
-
-You can change the endpoint if needed:
-
-#+begin_src elisp
-(setq comment-translate-google-endpoint
-      "https://translate.googleapis.com/translate_a/single")
-#+end_src
-
-* Commands
+** Commands
 
 - ~comment-translate-show~ - show translation at the current hover location
 - ~comment-translate-hide~ - hide the posframe
