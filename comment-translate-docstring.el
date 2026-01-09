@@ -1,4 +1,5 @@
 ;;; comment-translate-docstring.el --- Docstring dispatch -*- lexical-binding: t; -*-
+;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;; Author: Kyure-A
 ;; Keywords: convenience, tools, i18n

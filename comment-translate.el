@@ -1,4 +1,5 @@
-;;; comment-translate.el --- Translate comments via posframe -*- lexical-binding: t; -*-
+;;; comment-translate.el --- Translate comments -*- lexical-binding: t; -*-
+;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;; Author: Kyure-A
 ;; Version: 0.1.0
@@ -8,8 +9,10 @@
 
 ;;; Commentary:
 ;;
-;; Show translations for comments in a posframe when hovering (idle at point or mouse position).
-;; Default backend uses Google Translate's endpoint asynchronously; override with a custom translation function.
+;; Show translations for comments in a posframe when hovering (idle at point or
+;; mouse position).
+;; Default backend uses Google Translate's endpoint asynchronously; override
+;; with a custom translation function.
 ;;
 ;; Minimal usage:
 ;;   (require 'comment-translate)

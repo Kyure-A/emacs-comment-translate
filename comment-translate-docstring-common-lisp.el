@@ -1,4 +1,5 @@
 ;;; comment-translate-docstring-common-lisp.el --- Common Lisp docstring detection -*- lexical-binding: t; -*-
+;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;; Author: Kyure-A
 ;; Keywords: convenience, tools, i18n
