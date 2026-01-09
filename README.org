@@ -9,6 +9,9 @@ mouse position).
 - posframe
 - Network access (default backend uses Google Translate's unofficial endpoint)
 
+* Demo
+https://github.com/user-attachments/assets/cd56ec50-83ed-487b-8fb8-972293d16a31
+
 * Install
 
 Put ~comment-translate.el~ on your ~load-path~ and enable the mode:
