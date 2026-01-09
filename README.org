@@ -6,8 +6,8 @@ mouse position).
 ** Requirements
 
 - Emacs 27+
-- posframe
-- Network access (default backend uses Google Translate's unofficial endpoint)
+- [[https://github.com/tumashu/posframe][Posframe]]
+- Network access (default backend uses Google Translate's endpoint)
 
 ** Demo
 https://github.com/user-attachments/assets/cd56ec50-83ed-487b-8fb8-972293d16a31
